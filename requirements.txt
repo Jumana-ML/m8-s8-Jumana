@@ -1,5 +1,5 @@
 sentence-transformers>=2.2,<3
 weaviate-client>=3.25,<4
-numpy<2
+numpy>=2.0.0
 pandas
 pytest
