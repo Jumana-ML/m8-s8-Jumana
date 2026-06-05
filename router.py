@@ -30,25 +30,27 @@ def classify_query(query: str) -> str:
     word_count = len(words)
     
     # Heuristics for Semantic (Paraphrastic) intent
-    semantic_indicators = ["how", "why", "what", "best", "way", "explain", "difference"]
+    # Added "does" and "is" to better capture natural language questions
+    semantic_indicators = ["how", "why", "what", "best", "way", "explain", "difference", "does", "is"]
     has_semantic_word = any(w.lower() in semantic_indicators for w in words)
     
     # Heuristics for Factoid intent
-    # 1. Regex for capitalized multi-word phrases (Entities like "Android Activity")
     has_entities = bool(re.search(r'[A-Z][a-z]+(?:\s[A-Z][a-z]+)+', query_clean))
-    # 2. Presence of digits (Error codes, versions like "v3.0", "404")
     has_digits = bool(re.search(r'\d', query_clean))
     
-    # Dispatch Logic
-    if has_semantic_word or word_count > 8:
-        # Long queries or "how-to" questions benefit from dense vector space
+    # --- Dispatch Logic ---
+    
+    # 1. Purely descriptive queries with no technical identifiers go to Semantic (Dense)
+    if (has_semantic_word or word_count > 10) and not (has_entities or has_digits):
         return "semantic"
     
-    if (has_entities or has_digits or word_count <= 3) and not has_semantic_word:
-        # Specific identifiers or short keyword queries benefit from BM25 lexical match
+    # 2. Very short queries with specific IDs/Entities go to Factoid (BM25)
+    # Restricted to word_count <= 4 to prevent complex questions from being misrouted
+    if word_count <= 4 and (has_entities or has_digits) and not has_semantic_word:
         return "factoid"
     
-    # Default to hybrid for balanced queries
+    # 3. Everything else (Complex technical questions) goes to Mixed (Hybrid)
+    # This is the "Safe Route" that ensures the router matches the best baseline
     return "mixed"
 
 
